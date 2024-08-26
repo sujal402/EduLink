@@ -9,7 +9,6 @@ app.use(express.json());
 
 const jwtsecret = 'your_secret_key_here';
 
-// const mongourl = 'mongodb+srv://torayoi6:admin@cluster0.zknzdz2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
 const mongourl = 'mongodb://localhost:27017/EduGuide';
 
 mongoose.connect(mongourl).then(()=>{
