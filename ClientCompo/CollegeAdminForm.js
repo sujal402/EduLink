@@ -5,7 +5,8 @@ import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import CollegeAdminScreen from './CollegeAdminScreen';
+import axios from 'axios';
+import config from '../../Config'; // Assuming you have a Config file with baseURL
 
 export default function CollegeAdminForm() {
   const [email, setEmail] = useState('');
@@ -116,8 +117,15 @@ export default function CollegeAdminForm() {
     try {
       const jsonValue = JSON.stringify(collegeAdminData);
       await AsyncStorage.setItem('@collegeAdminData', jsonValue);
-      Alert.alert('Success', 'College Admin data saved successfully');
-      navigation.navigate('CollegeAdminScreen', { CollegeAdminScreen });
+      console.log('College Admin data saved locally');
+
+      const response = await axios.post(`${config.baseURL}/collegeAdminData`, collegeAdminData);
+      if (response.status === 201) {
+        Alert.alert('Success', 'College Admin data submitted successfully');
+        navigation.navigate('CollegeAdminScreen');
+      } else {
+          Alert.alert('Error', `Error submitting College Admin data: ${response.status}`);
+      }
     } catch (error) {
       console.error('Error submitting details', error);
       Alert.alert('Error', 'Error submitting College Admin data');
