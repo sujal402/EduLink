@@ -234,6 +234,17 @@ app.post('/advertiseCollege', async (req, res) => {
     }
 });
 
+// Fetch all approved college admins
+app.get('/approvedCollegeAdmins', async (req, res) => {
+    try {
+        const approvedCollegeAdmins = await ApprovedCollegeAdmin.find();
+        res.status(200).json(approvedCollegeAdmins);
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to fetch approved college admins' });
+    }
+});
+
+
 app.listen(5001, () => {
     console.log('Server is running on port 5001');
 });
