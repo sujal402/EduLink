@@ -1,186 +1,103 @@
-import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet, Alert, ActivityIndicator, Image } from 'react-native';
-import { Card, Title, Text, Button, Divider } from 'react-native-paper';
+import React, { useEffect, useState } from 'react';
+import { View, Text, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
 import axios from 'axios';
+import { Divider } from 'react-native-paper';
+import { useNavigation } from '@react-navigation/native';
 import config from '../../Config';
 
-export default function StudentApprovalScreen() {
-  const [students, setStudents] = useState([]);
+const ApprovedCollegeAdmins = () => {
+  const [approvedColleges, setApprovedColleges] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigation = useNavigation();
 
   useEffect(() => {
-    const fetchStudents = async () => {
+    const fetchApprovedColleges = async () => {
       try {
-        const response = await axios.get(`${config.baseURL}/students`);
-        setStudents(response.data);
+        const response = await axios.get(`${config.baseURL}/approvedCollegeAdmins`);
+        setApprovedColleges(response.data);
+        setLoading(false);
       } catch (error) {
-        console.error('Failed to load students', error);
-        Alert.alert('Error', 'Failed to load students');
-      } finally {
+        console.error('Error fetching approved colleges:', error);
         setLoading(false);
       }
     };
-    fetchStudents();
+
+    fetchApprovedColleges();
   }, []);
 
-  const approveStudent = async (studentId) => {
-    try {
-      // Fetch the specific student data
-      const student = students.find((student) => student._id === studentId);
-
-      // Move the data to ApprovedStudents collection
-      await axios.post(`${config.baseURL}/approveStudent`, student);
-
-      // Remove from students collection
-      await axios.post(`${config.baseURL}/disapproveStudent`, { id: studentId });
-
-      Alert.alert('Success', 'Student approved');
-
-      // Update local state
-      setStudents(students.filter((student) => student._id !== studentId));
-    } catch (error) {
-      console.error('Error approving student', error);
-      Alert.alert('Error', 'Failed to approve student');
-    }
+  const handleCollegeClick = (college) => {
+    navigation.navigate('CollegeDetails', { college });
   };
 
-  const disapproveStudent = async (studentId) => {
-    try {
-      await axios.post(`${config.baseURL}/disapproveStudent`, { id: studentId });
-      Alert.alert('Success', 'Student disapproved');
-      setStudents(students.filter((student) => student._id !== studentId));
-    } catch (error) {
-      console.error('Error disapproving student', error);
-      Alert.alert('Error', 'Failed to disapprove student');
-    }
-  };
+  const renderCollegeAdmin = ({ item }) => (
+    <TouchableOpacity onPress={() => handleCollegeClick(item)} style={styles.card}>
+      <View style={styles.cardContent}>
+        <Text style={styles.title}>{item.email}</Text>
+        <Text style={styles.details}>Location: <Text style={styles.info}>{item.location}</Text></Text>
+        <Text style={styles.details}>University: <Text style={styles.info}>{item.universityAffiliation}</Text></Text>
+        <Divider style={styles.divider} />
+      </View>
+    </TouchableOpacity>
+  );
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6200ea" />
-        <Text>Loading...</Text>
-      </View>
-    );
+    return <ActivityIndicator size="large" color="#6200ee" style={styles.loader} />;
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Approve Students</Text>
       <FlatList
-        data={students}
-        keyExtractor={(item) => item._id.toString()}
-        renderItem={({ item }) => (
-          <Card style={styles.card}>
-            <Card.Content>
-              <Title style={styles.studentName}>{item.name}</Title>
-              <Text style={styles.studentEmail}>{item.email}</Text>
-              <Text style={styles.studentDetail}>Location: {item.location}</Text>
-              <Text style={styles.studentDetail}>Pincode: {item.pincode}</Text>
-              <Text style={styles.studentDetail}>University Affiliation: {item.universityAffiliation}</Text>
-              <Text style={styles.studentDetail}>Website: {item.website}</Text>
-              <Text style={styles.studentDetail}>Number of Branches: {item.noOfBranches}</Text>
-              <Text style={styles.studentDetail}>Branches:</Text>
-              <FlatList
-                data={item.branches}
-                keyExtractor={(branch, index) => index.toString()}
-                renderItem={({ item: branch }) => (
-                  <Text style={styles.branchItem}>- {branch}</Text>
-                )}
-              />
-              <Divider style={styles.divider} />
-              <View style={styles.buttonContainer}>
-                <Button
-                  mode="contained"
-                  onPress={() => approveStudent(item._id)}
-                  style={styles.approveButton}
-                  labelStyle={styles.buttonText}
-                >
-                  Approve
-                </Button>
-                <Button
-                  mode="contained"
-                  onPress={() => disapproveStudent(item._id)}
-                  style={styles.disapproveButton}
-                  labelStyle={styles.buttonText}
-                >
-                  Disapprove
-                </Button>
-              </View>
-            </Card.Content>
-          </Card>
-        )}
+        data={approvedColleges}
+        renderItem={renderCollegeAdmin}
+        keyExtractor={item => item._id}
       />
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#FAFAFA',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#6200ea',
-    textAlign: 'center',
-    marginBottom: 20,
+    backgroundColor: '#f4f6f9',
   },
   card: {
-    marginBottom: 15,
-    borderRadius: 10,
-    elevation: 5,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    marginVertical: 8,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
-  studentName: {
-    fontSize: 22,
-    fontWeight: '700',
+  cardContent: {
+    padding: 20,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
     color: '#333',
-  },
-  studentEmail: {
-    fontSize: 16,
-    color: '#555',
     marginBottom: 8,
   },
-  studentDetail: {
-    fontSize: 16,
-    color: '#777',
-    marginBottom: 5,
-  },
-  branchItem: {
+  details: {
     fontSize: 16,
     color: '#555',
-    marginLeft: 10,
+    marginBottom: 4,
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-  },
-  approveButton: {
-    backgroundColor: '#28a745',
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-  },
-  disapproveButton: {
-    backgroundColor: '#dc3545',
-    borderRadius: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 16,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
+  info: {
     fontWeight: '600',
+    color: '#000',
   },
-  loadingContainer: {
+  divider: {
+    marginVertical: 12,
+    backgroundColor: '#ddd',
+  },
+  loader: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  divider: {
-    marginVertical: 10,
-  },
 });
+
+export default ApprovedCollegeAdmins;
