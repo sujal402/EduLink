@@ -15,37 +15,35 @@ export default function AdvertiseCollege() {
       try {
         const jsonValue = await AsyncStorage.getItem('@collegeAdminData');
         if (jsonValue != null) {
-          setCollegeData(JSON.parse(jsonValue));
+          const data = JSON.parse(jsonValue);
+          setCollegeData(data);
+          // After fetching college data, check if it's already advertised
+          checkAdvertisedStatus(data.email);
         }
       } catch (e) {
         Alert.alert('Error', 'Failed to load college data.');
       }
     };
 
-    const checkAdvertisedStatus = async () => {
+    const checkAdvertisedStatus = async (email) => {
       try {
-        const advertisedStatus = await AsyncStorage.getItem('@collegeAdvertised');
-        if (advertisedStatus === 'true') {
-          setAlreadyAdvertised(true);
-        }
+        const response = await axios.get(`${config.baseURL}/api/checkCollegeAdvertised`, {
+          params: { email },
+        });
+        setAlreadyAdvertised(response.data.advertised);
       } catch (e) {
         Alert.alert('Error', 'Failed to check advertised status.');
       }
     };
 
     fetchCollegeData();
-    checkAdvertisedStatus();
   }, []);
 
   const handleAdvertise = async () => {
     setLoading(true);
 
     try {
-      const advertiseResponse = await axios.post(`${config.baseURL}/advertiseCollege`, collegeData, {
-        headers: {
-          Authorization: `Bearer ${await AsyncStorage.getItem('token')}`, // Add token if required
-        },
-      });
+      const advertiseResponse = await axios.post(`${config.baseURL}/api/advertiseCollege`, collegeData);
 
       if (advertiseResponse.status === 201) {
         await AsyncStorage.setItem('@collegeAdvertised', 'true');
@@ -62,25 +60,6 @@ export default function AdvertiseCollege() {
     }
   };
 
-  if (alreadyAdvertised) {
-    return (
-      <ScrollView contentContainerStyle={styles.scrollView}>
-        <View style={styles.container}>
-          <Title style={styles.title}>College Already Advertised</Title>
-
-          <Card style={styles.card}>
-            <Card.Content>
-              <Title style={styles.cardTitle}>Advertised Status</Title>
-              <Divider style={styles.divider} />
-              
-              <Text style={styles.value}>This college has already been advertised.</Text>
-            </Card.Content>
-          </Card>
-        </View>
-      </ScrollView>
-    );
-  }
-
   if (!collegeData) {
     return (
       <ScrollView contentContainerStyle={styles.scrollView}>
@@ -91,46 +70,53 @@ export default function AdvertiseCollege() {
     );
   }
 
+  if (alreadyAdvertised) {
+    return (
+      <ScrollView contentContainerStyle={styles.scrollView}>
+        <View style={styles.container}>
+          <Title style={styles.title}>College Already Advertised</Title>
+          <Card style={styles.card}>
+            <Card.Content>
+              <Title style={styles.cardTitle}>Advertised Status</Title>
+              <Divider style={styles.divider} />
+              <Text style={styles.value}>This college has already been advertised.</Text>
+            </Card.Content>
+          </Card>
+        </View>
+      </ScrollView>
+    );
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.scrollView}>
       <View style={styles.container}>
         <Title style={styles.title}>College Details</Title>
-
         <Card style={styles.card}>
           <Card.Content>
             <Title style={styles.cardTitle}>College Information</Title>
             <Divider style={styles.divider} />
-
             <Text style={styles.label}>Email:</Text>
             <Text style={styles.value}>{collegeData.email}</Text>
-
             <Text style={styles.label}>Location:</Text>
             <Text style={styles.value}>{collegeData.location}</Text>
-
             <Text style={styles.label}>Pin Code:</Text>
             <Text style={styles.value}>{collegeData.pincode}</Text>
-
             <Text style={styles.label}>University Affiliation:</Text>
             <Text style={styles.value}>{collegeData.universityAffiliation}</Text>
-
             <Text style={styles.label}>NAAC Certification:</Text>
             {collegeData.naacCertPhoto ? (
               <Image source={{ uri: collegeData.naacCertPhoto }} style={styles.image} />
             ) : (
               <Text style={styles.value}>No NAAC Certification uploaded</Text>
             )}
-
             <Text style={styles.label}>Website:</Text>
             <Text style={styles.value}>{collegeData.website}</Text>
-
             <Text style={styles.label}>Number of Branches:</Text>
             <Text style={styles.value}>{collegeData.noOfBranches}</Text>
-
             <Text style={styles.label}>Branches:</Text>
             {collegeData.branches.map((branch, index) => (
               <Text key={index} style={styles.value}>• {branch}</Text>
             ))}
-
             <Button
               mode="contained"
               onPress={handleAdvertise}
