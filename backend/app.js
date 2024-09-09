@@ -77,6 +77,20 @@ const approvedStudentSchema = new mongoose.Schema({
 
 const ApprovedStudent = mongoose.model('ApprovedStudent', approvedStudentSchema);
 
+// Define schema and model for AdvertisedCollege
+const advertisedCollegeSchema = new mongoose.Schema({
+    email: { type: String, required: true },
+    location: { type: String, required: true },
+    pincode: { type: String, required: true },
+    universityAffiliation: { type: String, required: true },
+    naacCertPhoto: { type: String, required: true },
+    website: { type: String, required: true },
+    noOfBranches: { type: Number, required: true },
+    branches: { type: [String], required: true }
+});
+
+const AdvertisedCollege = mongoose.model('AdvertisedCollege', advertisedCollegeSchema);
+
 // Define routes
 app.get('/', (req, res) => {
     res.send({ stats: 'API is running' });
@@ -224,8 +238,8 @@ app.post('/advertiseCollege', async (req, res) => {
             return res.status(400).json({ error: 'No college data provided' });
         }
 
-        // Process the advertising (e.g., save to a separate collection, notify admins, etc.)
-        await ApprovedCollegeAdmin.create(collegeData);
+        const newCollege = new AdvertisedCollege(collegeData);
+        await newCollege.save();
 
         res.status(201).send({ status: "ok", message: "College advertised successfully" });
     } catch (error) {
@@ -244,6 +258,38 @@ app.get('/approvedCollegeAdmins', async (req, res) => {
     }
 });
 
+// New API endpoint to check if a college is advertised
+app.get('/api/checkCollegeAdvertised', async (req, res) => {
+    const { email } = req.query;
+    try {
+        const college = await AdvertisedCollege.findOne({ email });
+        if (college) {
+            res.json({ advertised: true });
+        } else {
+            res.json({ advertised: false });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+// New API endpoint to insert college data
+app.post('/api/advertiseCollege', async (req, res) => {
+    const collegeData = req.body;
+    try {
+        if (!collegeData) {
+            return res.status(400).json({ error: 'No college data provided' });
+        }
+
+        const newCollege = new AdvertisedCollege(collegeData);
+        await newCollege.save();
+
+        res.status(201).json({ status: "ok", message: "College advertised successfully" });
+    } catch (error) {
+        console.error('Error advertising college:', error);
+        res.status(500).json({ error: 'Error advertising college' });
+    }
+});
 
 app.listen(5001, () => {
     console.log('Server is running on port 5001');
